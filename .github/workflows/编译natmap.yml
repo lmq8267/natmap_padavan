@@ -78,9 +78,13 @@ jobs:
           body: |
            > ### 编译时间 ：${{ env.build_time }}
 
-           _upx后缀的为压缩版本
+           这是padavan的uclibc动态库版本
+           静态库的请下载作者的natmap-linux-mips32el
+
+           natmap 为原版
+           natmap_upx 为压缩版本
            
            **[官方更新说明](https://github.com/heiher/natmap/releases)**
           tag_name: ${{ needs.check.outputs.ver }}
-          files: /opt/natmap/* 
+          files: /opt/natmap/bin/* 
       
