@@ -1,0 +1,86 @@
+name: 编译padavan_natmap
+
+on:
+  schedule:
+    - cron: '0 20 * * *'
+  workflow_dispatch:
+env:
+  TZ: Asia/Shanghai
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      ver: ${{ steps.getversion.outputs.ver }}
+      cver: ${{ steps.getversion.outputs.cver }}
+    steps:
+      -
+        name: 检查更新
+        id: getversion
+        run: |
+          ver=`curl https://api.github.com/repos/heiher/natmap/releases/latest | jq -r '.tag_name'`
+          cver=`curl https://api.github.com/repos/lmq8267/natmap_padavan/releases/latest | jq -r '.tag_name'`
+          echo "ver=${ver}" >> $GITHUB_OUTPUT
+          echo "cver=${cver}" >> $GITHUB_OUTPUT
+      - 
+       name: 删除工作流
+       uses: GitRML/delete-workflow-runs@main
+       with:
+        token: ${{ secrets.c8 }}
+        retain_days: 2
+        keep_minimum_runs: 0
+  build:
+    runs-on: ubuntu-latest
+    needs: check
+    if: ${{ needs.check.outputs.ver != needs.check.outputs.cver }}
+    steps:
+      -
+        name: 检查代码
+        uses: actions/checkout@v3
+      - name: Init submodules
+        uses: snickerbockers/submodules-init@v4
+      - 
+        name: 克隆源码
+        shell: bash
+        run: |
+          git clone https://github.com/heiher/natmap -b ${{ needs.check.outputs.ver }} /opt/natmap
+          cd /opt/natmap/third-part
+          rm -rf ./hev-task-system
+          git clone --depth 1 --branch 684c71e https://github.com/heiher/hev-task-system ./hev-task-system
+          #下载编译工具链
+          wget -c https://github.com/lmq8267/n2n-2.8.x/releases/download/toolchain/host.zip -P /opt/gcc/
+          unzip /opt/gcc/host.zip -d /opt/gcc/
+          sudo chmod 777 -R /opt/gcc
+      - name: 编译
+        run: |
+          sudo timedatectl set-timezone "Asia/Shanghai"
+          export PATH=$PATH:/opt/gcc/host/bin
+          export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/gcc/host/lib
+          export CC=mipsel-linux-gcc
+          export LD=mipsel-linux-ld
+          export AR=mipsel-linux-ar
+          export RANLIB=mipsel-linux-ranlib
+          cd /opt/natmap
+          make CROSS_PREFIX=/opt/gcc/host/bin/mipsel-linux-
+          cd ./bin
+          /opt/gcc/host/bin/mipsel-linux-strip natmap
+          cp -f natmap natmap_upx
+          git clone https://github.com/lmq8267/cloudflared.git /opt/st
+          tar -xvf /opt/st/upx-3.95-amd64_linux.tar.xz -C /opt
+          chmod 777 /opt/upx-3.95-amd64_linux/upx
+          /opt/upx-3.95-amd64_linux/upx --lzma --best natmap_upx
+          echo "build_time=$(date '+%Y-%m-%d %H:%M:%S')" >> $GITHUB_ENV
+      - 
+        name: 发布
+        uses: softprops/action-gh-release@v1
+        with:
+          token: ${{ secrets.c8 }}
+          body: |
+           > ### 编译时间 ：${{ env.build_time }}
+
+           _upx后缀的为压缩版本
+           
+           **[官方更新说明](https://github.com/heiher/natmap/releases)**
+          tag_name: ${{ needs.check.outputs.ver }}
+          files: /opt/natmap/* 
+      
