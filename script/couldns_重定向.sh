@@ -29,15 +29,7 @@ fi
 if [ "$login" = "0" ] ; then
 log "$user $userpass"
 curl -c /tmp/session_id -s -k 'https://www.cloudns.net/ajaxActions.php?action=index' \
-  -H 'sec-ch-ua: "Not_A Brand";v="99", "Google Chrome";v="109", "Chromium";v="109"' \
-  -H 'sec-ch-ua-mobile: ?0' \
-  -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36' \
-  -H 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8' \
-  -H 'Accept: application/json, text/javascript, */*; q=0.01' \
-  -H 'Referer: https://www.cloudns.net/index/show/login/' \
-  -H 'X-Requested-With: XMLHttpRequest' \
-  -H 'sec-ch-ua-platform: "Windows"' \
-  --data-raw 'type=login2FA&mail='"$user"'&password='"$userpass"'&token=&captcha=' 
+  -d 'type=login2FA&mail='"$user"'&password='"$userpass"'&token=&captcha=' 
   
 session_id="$(cat /tmp/session_id | grep "session_id" | awk '{print $7}')"
 if [ ! -z /tmp/session_id ] ; then
@@ -58,22 +50,8 @@ fi
 
 ## 再携session_id获取域名的区域ID 
 zoneID="$(curl -s -k 'https://www.cloudns.net/ajaxPages.php?action=main&nocache=1712445852064' \
-  -H 'authority: www.cloudns.net' \
-  -H 'accept: */*' \
-  -H 'accept-language: zh-CN,zh;q=0.9,en;q=0.8' \
-  -H 'content-type: application/x-www-form-urlencoded; charset=UTF-8' \
   -H 'cookie: session_id='"$session_id"'; landing_page=%2F; static_revision=39632; _ga=GA1.1.1887499628.1712409883; referral=https%3A%2F%2Fwww.cloudns.net%2F; lang=chs; _ga_YTMCW6TB90=GS1.1.1712416242.2.1.1712416532.60.0.0' \
-  -H 'origin: https://www.cloudns.net' \
-  -H 'referer: https://www.cloudns.net/main/' \
-  -H 'sec-ch-ua: "Not_A Brand";v="99", "Google Chrome";v="109", "Chromium";v="109"' \
-  -H 'sec-ch-ua-mobile: ?0' \
-  -H 'sec-ch-ua-platform: "Windows"' \
-  -H 'sec-fetch-dest: empty' \
-  -H 'sec-fetch-mode: cors' \
-  -H 'sec-fetch-site: same-origin' \
-  -H 'user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36' \
-  -H 'x-requested-with: XMLHttpRequest' \
-  --data-raw '&show=zones')"
+  -d '&show=zones')"
   Zone_ID=$(echo $zoneID| grep -o 'toggleZoneMenu[[:space:]]*([[:space:]]*[0-9][0-9]*' | grep -o '[0-9][0-9]*')
   if [ -z "$Zone_ID" ] ; then
     log "获取 ${host_domian} 的区域ID失败，请检查"
@@ -84,22 +62,9 @@ zoneID="$(curl -s -k 'https://www.cloudns.net/ajaxPages.php?action=main&nocache=
 
   ## 接着携区域ID获取域名记录的recordID
  recordID="$(curl -s -k 'https://www.cloudns.net/ajaxPages.php?action=records' \
-  -H 'authority: www.cloudns.net' \
-  -H 'accept: */*' \
-  -H 'accept-language: zh-CN,zh;q=0.9,en;q=0.8' \
-  -H 'content-type: application/x-www-form-urlencoded; charset=UTF-8' \
   -H 'cookie: session_id='"$session_id"'; landing_page=%2F; static_revision=39632; _ga=GA1.1.1887499628.1712409883; referral=https%3A%2F%2Fwww.cloudns.net%2F; lang=chs; _ga_YTMCW6TB90=GS1.1.1712416242.2.1.1712416532.60.0.0' \
-  -H 'origin: https://www.cloudns.net' \
   -H 'referer: https://www.cloudns.net/records/domain/$Zone_ID/' \
-  -H 'sec-ch-ua: "Not_A Brand";v="99", "Google Chrome";v="109", "Chromium";v="109"' \
-  -H 'sec-ch-ua-mobile: ?0' \
-  -H 'sec-ch-ua-platform: "Windows"' \
-  -H 'sec-fetch-dest: empty' \
-  -H 'sec-fetch-mode: cors' \
-  -H 'sec-fetch-site: same-origin' \
-  -H 'user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36' \
-  -H 'x-requested-with: XMLHttpRequest' \
-  --data-raw '&show=get&zone='"$Zone_ID"'&type=all&order-by=null&page=1')"
+  -d '&show=get&zone='"$Zone_ID"'&type=all&order-by=null&page=1')"
 RecordID=$(echo $recordID|grep -oE "zone_deleteRecord\([0-9]+, ([0-9]+), '删除记录: ${host_domian} - WR - (http://[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+)'\)" | awk -F', ' '{if (!printed[$2]) {print $2, $3; printed[$2]=1}}' | awk '{ztid=$1; out2=$7; print ztid, out2}' | tr -d "')")
 Record_ID=$(echo $RecordID | awk '{print $1}')
 Record_IP=$(echo $RecordID | awk '{print $2}')
@@ -114,38 +79,14 @@ fi
 if [ "$addr" != "$Record_IP" ] ; then
 log "原有记录 ${Record_IP} 不等于当前记录 ${addr} ，开始更新..."
 curl -s -k 'https://www.cloudns.net/ajaxActions.php?action=records' \
-  -H 'authority: www.cloudns.net' \
-  -H 'accept: */*' \
-  -H 'accept-language: zh-CN,zh;q=0.9,en;q=0.8' \
-  -H 'content-type: application/x-www-form-urlencoded; charset=UTF-8' \
   -H 'cookie: session_id='"$session_id"'; landing_page=%2F; static_revision=39632; _ga=GA1.1.1887499628.1712409883; referral=https%3A%2F%2Fwww.cloudns.net%2F; lang=chs; _ga_YTMCW6TB90=GS1.1.1712416242.2.0.1712416242.60.0.0' \
-  -H 'origin: https://www.cloudns.net' \
   -H 'referer: https://www.cloudns.net/records/domain/$Zone_ID/' \
-  -H 'sec-ch-ua: "Not_A Brand";v="99", "Google Chrome";v="109", "Chromium";v="109"' \
-  -H 'sec-ch-ua-mobile: ?0' \
-  -H 'sec-ch-ua-platform: "Windows"' \
-  -H 'sec-fetch-dest: empty' \
-  -H 'sec-fetch-mode: cors' \
-  -H 'sec-fetch-site: same-origin' \
-  -H 'user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36' \
-  -H 'x-requested-with: XMLHttpRequest' \
-  --data-raw 'show=editRecord&zone='"$Zone_ID"'&record_id='"$Record_ID"'&settings%5Badditional_data%5D%5Bwrtype%5D=302&settings%5Bhost%5D=test&settings%5Brecord%5D=http%3A%2F%2F'"$IP"'%3A'"$PORT"'&settings%5Bttl%5D=3600' 
+  -d 'show=editRecord&zone='"$Zone_ID"'&record_id='"$Record_ID"'&settings%5Badditional_data%5D%5Bwrtype%5D=302&settings%5Bhost%5D=test&settings%5Brecord%5D=http%3A%2F%2F'"$IP"'%3A'"$PORT"'&settings%5Bttl%5D=3600' 
 
 ## 检查是否将新地址成功更新上去
 status=$(curl -s -k 'https://www.cloudns.net/ajaxPages.php?action=records&show=edit&zone='"$Zone_ID"'&record='"$Record_ID"'&nocache=1712445600198' \
-  -H 'authority: www.cloudns.net' \
-  -H 'accept: */*' \
-  -H 'accept-language: zh-CN,zh;q=0.9,en;q=0.8' \
   -H 'cookie: session_id='"$session_id"'; landing_page=%2F; static_revision=39632; _ga=GA1.1.1887499628.1712409883; referral=https%3A%2F%2Fwww.cloudns.net%2F; lang=chs; _ga_YTMCW6TB90=GS1.1.1712416242.2.1.1712416532.60.0.0' \
-  -H 'referer: https://www.cloudns.net/records/domain/$Zone_ID/' \
-  -H 'sec-ch-ua: "Not_A Brand";v="99", "Google Chrome";v="109", "Chromium";v="109"' \
-  -H 'sec-ch-ua-mobile: ?0' \
-  -H 'sec-ch-ua-platform: "Windows"' \
-  -H 'sec-fetch-dest: empty' \
-  -H 'sec-fetch-mode: cors' \
-  -H 'sec-fetch-site: same-origin' \
-  -H 'user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36' \
-  -H 'x-requested-with: XMLHttpRequest' )
+  -H 'referer: https://www.cloudns.net/records/domain/$Zone_ID/' )
   now_IP=$(echo $status | awk -F 'id="editRecordRecord" value="' '{print $2}' | awk -F '"' '{print $1}')
   if [ "$now_IP" = "$addr" ] ; then
     log "更新成功，当前 ${host_domian} 已更新为 ${now_IP}"
