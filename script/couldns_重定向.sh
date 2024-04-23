@@ -100,7 +100,7 @@ zoneID="$(curl -s -k 'https://www.cloudns.net/ajaxPages.php?action=main&nocache=
   -H 'user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36' \
   -H 'x-requested-with: XMLHttpRequest' \
   --data-raw '&show=get&zone='"$Zone_ID"'&type=all&order-by=null&page=1')"
-RecordID=$(echo $recordID|grep -oE "zone_deleteRecord\([0-9]+, ([0-9]+), '删除记录: test.8267.cloudns.be - WR - (http://[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+)'\)" | awk -F', ' '{if (!printed[$2]) {print $2, $3; printed[$2]=1}}' | awk '{ztid=$1; out2=$7; print ztid, out2}' | tr -d "')")
+RecordID=$(echo $recordID|grep -oE "zone_deleteRecord\([0-9]+, ([0-9]+), '删除记录: ${host_domian} - WR - (http://[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+)'\)" | awk -F', ' '{if (!printed[$2]) {print $2, $3; printed[$2]=1}}' | awk '{ztid=$1; out2=$7; print ztid, out2}' | tr -d "')")
 Record_ID=$(echo $RecordID | awk '{print $1}')
 Record_IP=$(echo $RecordID | awk '{print $2}')
 if [ -z "$Record_ID" ] ; then
