@@ -6,7 +6,6 @@ userpass="wodemima"
 #域名
 host_domian="test.wode.cloudns.be"
 
-
 IP=$1 
 PORT=$2
 addr=http://${IP}:${PORT}
@@ -50,7 +49,7 @@ fi
 
 ## 再携session_id获取域名的区域ID 
 zoneID="$(curl -s -k 'https://www.cloudns.net/ajaxPages.php?action=main&nocache=1712445852064' \
-  -H 'cookie: session_id='"$session_id"'; landing_page=%2F; static_revision=39632; _ga=GA1.1.1887499628.1712409883; referral=https%3A%2F%2Fwww.cloudns.net%2F; lang=chs; _ga_YTMCW6TB90=GS1.1.1712416242.2.1.1712416532.60.0.0' \
+  -H 'cookie: session_id='"$session_id"'' \
   -d '&show=zones')"
   Zone_ID=$(echo $zoneID| grep -o 'toggleZoneMenu[[:space:]]*([[:space:]]*[0-9][0-9]*' | grep -o '[0-9][0-9]*')
   if [ -z "$Zone_ID" ] ; then
@@ -62,8 +61,7 @@ zoneID="$(curl -s -k 'https://www.cloudns.net/ajaxPages.php?action=main&nocache=
 
   ## 接着携区域ID获取域名记录的recordID
  recordID="$(curl -s -k 'https://www.cloudns.net/ajaxPages.php?action=records' \
-  -H 'cookie: session_id='"$session_id"'; landing_page=%2F; static_revision=39632; _ga=GA1.1.1887499628.1712409883; referral=https%3A%2F%2Fwww.cloudns.net%2F; lang=chs; _ga_YTMCW6TB90=GS1.1.1712416242.2.1.1712416532.60.0.0' \
-  -H 'referer: https://www.cloudns.net/records/domain/$Zone_ID/' \
+  -H 'cookie: session_id='"$session_id"'' \
   -d '&show=get&zone='"$Zone_ID"'&type=all&order-by=null&page=1')"
 RecordID=$(echo $recordID|grep -oE "zone_deleteRecord\([0-9]+, ([0-9]+), '删除记录: ${host_domian} - WR - (http://[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+)'\)" | awk -F', ' '{if (!printed[$2]) {print $2, $3; printed[$2]=1}}' | awk '{ztid=$1; out2=$7; print ztid, out2}' | tr -d "')")
 Record_ID=$(echo $RecordID | awk '{print $1}')
@@ -79,14 +77,12 @@ fi
 if [ "$addr" != "$Record_IP" ] ; then
 log "原有记录 ${Record_IP} 不等于当前记录 ${addr} ，开始更新..."
 curl -s -k 'https://www.cloudns.net/ajaxActions.php?action=records' \
-  -H 'cookie: session_id='"$session_id"'; landing_page=%2F; static_revision=39632; _ga=GA1.1.1887499628.1712409883; referral=https%3A%2F%2Fwww.cloudns.net%2F; lang=chs; _ga_YTMCW6TB90=GS1.1.1712416242.2.0.1712416242.60.0.0' \
-  -H 'referer: https://www.cloudns.net/records/domain/$Zone_ID/' \
+  -H 'cookie: session_id='"$session_id"'' \
   -d 'show=editRecord&zone='"$Zone_ID"'&record_id='"$Record_ID"'&settings%5Badditional_data%5D%5Bwrtype%5D=302&settings%5Bhost%5D=test&settings%5Brecord%5D=http%3A%2F%2F'"$IP"'%3A'"$PORT"'&settings%5Bttl%5D=3600' 
 
 ## 检查是否将新地址成功更新上去
 status=$(curl -s -k 'https://www.cloudns.net/ajaxPages.php?action=records&show=edit&zone='"$Zone_ID"'&record='"$Record_ID"'&nocache=1712445600198' \
-  -H 'cookie: session_id='"$session_id"'; landing_page=%2F; static_revision=39632; _ga=GA1.1.1887499628.1712409883; referral=https%3A%2F%2Fwww.cloudns.net%2F; lang=chs; _ga_YTMCW6TB90=GS1.1.1712416242.2.1.1712416532.60.0.0' \
-  -H 'referer: https://www.cloudns.net/records/domain/$Zone_ID/' )
+  -H 'cookie: session_id='"$session_id"'' )
   now_IP=$(echo $status | awk -F 'id="editRecordRecord" value="' '{print $2}' | awk -F '"' '{print $1}')
   if [ "$now_IP" = "$addr" ] ; then
     log "更新成功，当前 ${host_domian} 已更新为 ${now_IP}"
