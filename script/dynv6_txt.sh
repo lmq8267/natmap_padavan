@@ -42,9 +42,9 @@ record="$(curl -s -k -X GET \
        -H "Content-Type: application/json" \
        -H "Accept: application/json" \
        https://dynv6.com/api/v2/zones/$zoonid/records)"
-#records=$(echo "$record" | grep -o "{[^}]*\"name\":\"$host_name\"[^}]*}")
-recordid=$(echo "$record" | grep -o '"id":[0-9]\+' | grep -o '[0-9]\+')
-last_ip=$(echo "$record" | grep -oE '"data":"([^"]+)"' | cut -d '"' -f 4)
+#records=$(echo "$record" | grep -o '"type":"TXT","[^}]*' | grep -o "{[^}]*\"name\":\"$host_name\"[^}]*}")
+recordid=$(echo "$record" | grep -o '"type":"TXT","[^}]*' | grep -o '"id":[0-9]\+' | grep -o '[0-9]\+')
+last_ip=$(echo "$record" | grep -o '"type":"TXT","[^}]*' | grep -oE '"data":"([^"]+)"' | cut -d '"' -f 4)
 if [ -z "$recordid"] ; then
    log "无法获取 ${host_domian} 的记录ID，请检查"
    exit 1
