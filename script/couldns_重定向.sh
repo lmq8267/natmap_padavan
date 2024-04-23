@@ -1,5 +1,5 @@
 #!/bin/sh
-#这是将生成的ip：端口直接重定向到域名直接访问，注意这不是cloudflare
+#这是将生成的ip：端口直接重定向到域名直接访问，注意这不是cloudflare，需要先手动创建一个WR记录 任意值即可如 http://175.66.66.33:5268
 #帐号user和密码userpass，帐号里的 @ 用 %40 表示，例如 zhansan@163.com  就填zhansan%40163.com 
 user="109505310%40qq.com"
 userpass="wodemima"
