@@ -1,11 +1,14 @@
 #!/bin/sh
-#这是将生成的ip：端口直接重定向到域名直接访问，注意这不是cloudflare，需要先手动创建一个WR记录 任意值即可如 http://175.66.66.33:5268
+#这是将生成的ip：端口直接重定向到域名直接访问，注意这不是cloudflare，需要先手动创建一个WR记录 任意值即可 格式如 http://175.66.66.33:5268 选择302重定向
 #帐号user和密码userpass，帐号里的 @ 用 %40 表示，例如 zhansan@163.com  就填zhansan%40163.com 
 user="109505310%40qq.com"
 userpass="wodemima"
-#域名
-host_domian="test.wode.cloudns.be"
+#域名(如test.wode.cloudns.be ，按以下方式填)
+name1=test
+name2=wode.cloudns.be
 
+
+host_domian="${name1}.${name2}"
 IP=$1 
 PORT=$2
 addr=http://${IP}:${PORT}
@@ -78,12 +81,13 @@ if [ "$addr" != "$Record_IP" ] ; then
 log "原有记录 ${Record_IP} 不等于当前记录 ${addr} ，开始更新..."
 curl -s -k 'https://www.cloudns.net/ajaxActions.php?action=records' \
   -H 'cookie: session_id='"$session_id"'' \
-  -d 'show=editRecord&zone='"$Zone_ID"'&record_id='"$Record_ID"'&settings%5Badditional_data%5D%5Bwrtype%5D=302&settings%5Bhost%5D=test&settings%5Brecord%5D=http%3A%2F%2F'"$IP"'%3A'"$PORT"'&settings%5Bttl%5D=3600' 
+  -d 'show=editRecord&zone='"$Zone_ID"'&record_id='"$Record_ID"'&settings%5Badditional_data%5D%5Bwrtype%5D=302&settings%5Bhost%5D='"$name1"'&settings%5Brecord%5D=http%3A%2F%2F'"$IP"'%3A'"$PORT"'&settings%5Bttl%5D=3600' 
 
 ## 检查是否将新地址成功更新上去
 status=$(curl -s -k 'https://www.cloudns.net/ajaxPages.php?action=records&show=edit&zone='"$Zone_ID"'&record='"$Record_ID"'&nocache=1712445600198' \
   -H 'cookie: session_id='"$session_id"'' )
-  now_IP=$(echo $status | awk -F 'id="editRecordRecord" value="' '{print $2}' | awk -F '"' '{print $1}')
+  #now_IP=$(echo $status | awk -F 'id="editRecordRecord" value="' '{print $2}' | awk -F '"' '{print $1}')
+   now_IP=$(echo $status | grep -o "$addr" )
   if [ "$now_IP" = "$addr" ] ; then
     log "更新成功，当前 ${host_domian} 已更新为 ${now_IP}"
   else
