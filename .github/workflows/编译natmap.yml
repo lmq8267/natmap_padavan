@@ -45,12 +45,15 @@ jobs:
         run: |
           git clone --recursive https://github.com/heiher/natmap -b ${{ needs.check.outputs.ver }} /opt/natmap
           cd /opt/natmap/third-part
-          #rm -rf ./hev-task-system
-          #git clone https://github.com/heiher/hev-task-system /opt/natmap/third-part/hev-task-system
           #下载编译工具链
           wget -q -c https://github.com/lmq8267/n2n-2.8.x/releases/download/toolchain/host.zip -P /opt/gcc/
           unzip -q /opt/gcc/host.zip -d /opt/gcc/
           sudo chmod 777 -R /opt/gcc
+      - name: 安装 UPX
+        uses: crazy-max/ghaction-upx@v3
+        with:
+          version: latest
+          install-only: true
       - name: 编译
         run: |
           sudo timedatectl set-timezone "Asia/Shanghai"
@@ -65,10 +68,7 @@ jobs:
           cd ./bin
           /opt/gcc/host/bin/mipsel-linux-strip natmap
           cp -f natmap natmap_upx
-          git clone https://github.com/lmq8267/cloudflared.git /opt/st
-          tar -xvf /opt/st/upx-3.95-amd64_linux.tar.xz -C /opt
-          chmod 777 /opt/upx-3.95-amd64_linux/upx
-          /opt/upx-3.95-amd64_linux/upx --lzma --best natmap_upx
+          upx --lzma --best natmap_upx
           echo "build_time=$(date '+%Y-%m-%d %H:%M:%S')" >> $GITHUB_ENV
       - 
         name: 发布
@@ -87,4 +87,14 @@ jobs:
            **[官方更新说明](https://github.com/heiher/natmap/releases)**
           tag_name: ${{ needs.check.outputs.ver }}
           files: /opt/natmap/bin/* 
-      
+  keepalive-workflow:
+    # github超过60天未提交将自动停止工作流
+    name: 工作流保活 
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: gautamkrishnar/keepalive-workflow@v2
+        #with:
+          #use_api: true
